@@ -23,6 +23,29 @@ def open_slide(filename: PathLike) -> "OpenSlideSlide":
     return OpenSlideSlide(filename)
 
 
+_PROPERTY_NAME_TIFF_RESOLUTION_UNIT = 'tiff.ResolutionUnit'
+_PROPERTY_NAME_TIFF_XRESOLUTION = 'tiff.XResolution'
+_PROPERTY_NAME_TIFF_YRESOLUTION = 'tiff.YResolution'
+_UNIT_DICT = {
+    "centimeter": 10000.0
+}
+
+
+def get_mpp(slide_properties) -> Tuple[float, float]:
+    if openslide.PROPERTY_NAME_MPP_X in slide_properties and openslide.PROPERTY_NAME_MPP_Y in slide_properties:
+        mpp_x = float(slide_properties[openslide.PROPERTY_NAME_MPP_X])
+        mpp_y = float(slide_properties[openslide.PROPERTY_NAME_MPP_Y])
+    else:
+        # No standard mpp metadata found. Likely a standard tiff.
+        # Check usual tags.
+        resolution_unit = slide_properties[_PROPERTY_NAME_TIFF_RESOLUTION_UNIT]
+        resolution_multiplier = _UNIT_DICT[resolution_unit]
+
+        mpp_x = resolution_multiplier / float(slide_properties[_PROPERTY_NAME_TIFF_XRESOLUTION])
+        mpp_y = resolution_multiplier / float(slide_properties[_PROPERTY_NAME_TIFF_YRESOLUTION])
+    return mpp_x, mpp_y
+
+
 class OpenSlideSlide(openslide.OpenSlide, AbstractSlideBackend):
     """
     Backend for openslide.
@@ -38,9 +61,7 @@ class OpenSlideSlide(openslide.OpenSlide, AbstractSlideBackend):
         super().__init__(str(filename))
 
         try:
-            mpp_x = float(self.properties[openslide.PROPERTY_NAME_MPP_X])
-            mpp_y = float(self.properties[openslide.PROPERTY_NAME_MPP_Y])
-
+            mpp_x, mpp_y = get_mpp(self.properties)
         except KeyError:
             raise UnsupportedSlideError(f"slide property mpp is not available.", str(filename))
 
