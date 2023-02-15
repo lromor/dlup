@@ -56,16 +56,14 @@ class RegionView(ABC):
 
         clipped_region_size = np.clip(location + size, np.zeros_like(size), self.size) - location - offset
         clipped_region_size = clipped_region_size.astype(int)
-        region = self._read_region_impl(location + offset, clipped_region_size)
 
-        if self.boundary_mode == BoundaryMode.zero:
-            if np.any(size != clipped_region_size) or np.any(location < 0):
-                new_region = PIL.Image.new(str(region.mode), tuple(size))
-                # Now we need to paste the region into the new region.
-                # We do some rounding to int.
-                new_region.paste(region, tuple(np.floor(offset).astype(int)))
-                return new_region
+        # Empty region
+        output_size = tuple(size) if self.boundary_mode == BoundaryMode.zero else tuple(clipped_region_size)
+        region = PIL.Image.new("RGB", output_size)
 
+        if (clipped_region_size[0] * clipped_region_size[1]) > 0:
+            extracted_region = self._read_region_impl(location + offset, clipped_region_size)
+            region.paste(extracted_region, tuple(np.floor(offset).astype(int)))
         return region
 
     @abstractmethod

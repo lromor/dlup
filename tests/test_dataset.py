@@ -22,5 +22,5 @@ def test_tiled_level_slide_image_dataset(monkeypatch, dlup_wsi):
 
     # Numpy array has height, width, channels.
     # Images have width, height, channels.
-    assert np.asarray(tile).shape == (24, 32, 4)
+    assert np.asarray(tile).shape == (24, 32, 3)
     assert len(coordinates) == 2
